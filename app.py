@@ -2,23 +2,21 @@ import streamlit as st
 import pandas as pd
 import joblib
 import os
-import subprocess
+from google.cloud import storage
 
 st.set_page_config(page_title="Credit Risk Prediction", layout="centered")
 
-st.title("💳 Credit Card Default Prediction")
-st.write("Predict whether a customer will default next month.")
-
 MODEL_PATH = "model.joblib"
-GCS_PATH = "gs://credit-risk-pred-pranav/model.joblib"
+BUCKET_NAME = "credit-risk-pred-pranav"
+BLOB_NAME = "model.joblib"
 
 @st.cache_resource
 def load_model():
     if not os.path.exists(MODEL_PATH):
-        subprocess.run(
-            ["gsutil", "cp", GCS_PATH, MODEL_PATH],
-            check=True
-        )
+        client = storage.Client()
+        bucket = client.bucket(BUCKET_NAME)
+        blob = bucket.blob(BLOB_NAME)
+        blob.download_to_filename(MODEL_PATH)
     return joblib.load(MODEL_PATH)
 
 model = load_model()
@@ -47,3 +45,4 @@ if st.button("Predict"):
         st.error("⚠️ High Risk: Likely to Default")
     else:
         st.success("✅ Low Risk: Not Likely to Default")
+
