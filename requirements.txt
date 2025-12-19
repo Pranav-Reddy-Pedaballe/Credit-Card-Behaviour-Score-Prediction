@@ -8,3 +8,4 @@ xgboost
 lightgbm
 shap
 streamlit
+joblib
