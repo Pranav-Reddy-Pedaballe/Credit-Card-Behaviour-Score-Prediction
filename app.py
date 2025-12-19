@@ -54,33 +54,35 @@ PAY_TO_BILL_ratio = st.number_input("PAY_TO_BILL_ratio", value=0.0)
 
 if st.button("Predict"):
     input_df = pd.DataFrame([{
-        "Customer_ID"= Customer_ID
-        "marriage" = marriage
-        "sex" = sex
-        "education" = education
-        "LIMIT_BAL" = LIMIT_BAL
-        "age" = st.number_input("Age", min_value=18)
-        "pay_0" = st.number_input("pay_0", value=0.0)
-        "pay_2" = st.number_input("pay_2", value=0.0)
-        "pay_3" = st.number_input("pay_3", value=0.0)
-        "pay_4" = st.number_input("pay_4", value=0.0)
-        "pay_5" = st.number_input("pay_5", value=0.0)
-        "pay_6" = st.number_input("pay_6", value=0.0)
-        "Bill_amt1" = st.number_input("Bill_amt1", value=0.0)
-        "Bill_amt2" = st.number_input("Bill_amt2", value=0.0)
-        "Bill_amt3" = st.number_input("Bill_amt3", value=0.0)
-        "Bill_amt4" = st.number_input("Bill_amt4", value=0.0)
-        "Bill_amt5" = st.number_input("Bill_amt5", value=0.0)
-        "Bill_amt6" = st.number_input("Bill_amt6", value=0.0)
-        "pay_amt1" = st.number_input("pay_amt1", value=0.0)
-        "pay_amt2" = st.number_input("pay_amt2", value=0.0)
-        "pay_amt3" = st.number_input("pay_amt3", value=0.0)
-        "pay_amt4" = st.number_input("pay_amt4", value=0.0)
-        "pay_amt5" = st.number_input("pay_amt5", value=0.0)
-        "pay_amt6" = st.number_input("pay_amt6", value=0.0)
-        "AVG_Bill_amt" = st.number_input("AVG_Bill_amt", value=0.0)
-        "PAY_TO_BILL_ratio" = st.number_input("PAY_TO_BILL_ratio", value=0.0)
+        "marriage": marriage,
+        "sex": sex,
+        "education": education,
+        "LIMIT_BAL": LIMIT_BAL,
+        "age": age,
+        "pay_0": pay_0,
+        "pay_2": pay_2,
+        "pay_3": pay_3,
+        "pay_4": pay_4,
+        "pay_5": pay_5,
+        "pay_6": pay_6,
+        "Bill_amt1": Bill_amt1,
+        "Bill_amt2": Bill_amt2,
+        "Bill_amt3": Bill_amt3,
+        "Bill_amt4": Bill_amt4,
+        "Bill_amt5": Bill_amt5,
+        "Bill_amt6": Bill_amt6,
+        "pay_amt1": pay_amt1,
+        "pay_amt2": pay_amt2,
+        "pay_amt3": pay_amt3,
+        "pay_amt4": pay_amt4,
+        "pay_amt5": pay_amt5,
+        "pay_amt6": pay_amt6,
+        "AVG_Bill_amt": AVG_Bill_amt,
+        "PAY_TO_BILL_ratio": PAY_TO_BILL_ratio
     }])
+
+    # 🔐 enforce exact training feature order
+    input_df = input_df[model.feature_names_in_]
 
     pred = model.predict(input_df)[0]
 
@@ -88,5 +90,7 @@ if st.button("Predict"):
         st.error("⚠️ High Risk: Likely to Default")
     else:
         st.success("✅ Low Risk: Not Likely to Default")
+
+
 
 
