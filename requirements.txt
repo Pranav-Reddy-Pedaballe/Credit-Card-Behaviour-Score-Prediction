@@ -10,3 +10,5 @@ shap
 streamlit
 joblib
 google-cloud-storage
+google-cloud-aiplatform
+
