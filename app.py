@@ -94,6 +94,7 @@ pay_amt5 = st.number_input("Pay Amount 5", value=0.0)
 pay_amt6 = st.number_input("Pay Amount 6", value=0.0)
 
 AVG_Bill_amt = st.number_input("Average Bill Amount", value=0.0)
+PAY_TO_BILL_ratio = st.number_input("PAY TO BILL ratio", value=0.0)
 
 # ---------------- PREDICTION ----------------
 if st.button("Predict"):
@@ -122,7 +123,8 @@ if st.button("Predict"):
         "pay_amt4": pay_amt4,
         "pay_amt5": pay_amt5,
         "pay_amt6": pay_amt6,
-        "AVG_Bill_amt": AVG_Bill_amt
+        "AVG_Bill_amt": AVG_Bill_amt,
+        "PAY_TO_BILL_ratio":PAY_TO_BILL_ratio
     }])
 
     processed_df = preprocess(raw_df)
@@ -136,3 +138,4 @@ if st.button("Predict"):
         st.error(f"⚠️ Customer {Customer_ID}: Likely to Default")
     else:
         st.success(f"✅ Customer {Customer_ID}: Not Likely to Default")
+
