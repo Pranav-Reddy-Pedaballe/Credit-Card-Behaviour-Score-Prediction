@@ -26,21 +26,21 @@ model = load_model()
 def preprocess(df):
     df = df.copy()
 
-    # 🔴 DROP Customer_ID (used only for reference)
+    # Drop Customer_ID (used only for reference)
     df.drop("Customer_ID", axis=1, inplace=True)
 
-    # payment delay features
+    # Payment delay features
     df["payment_delay"] = (df[[f"pay_{i}" for i in [0,2,3,4,5,6]]] > 0).sum(axis=1)
     df["max_payment_delay"] = df[[f"pay_{i}" for i in [0,2,3,4,5,6]]].max(axis=1)
 
-    # utilization features
+    # Utilization features
     for i in range(1, 7):
         df[f"utilization_m{i}"] = df[f"Bill_amt{i}"] / df["LIMIT_BAL"]
 
     df["avg_utilization"] = df[[f"utilization_m{i}" for i in range(1, 7)]].mean(axis=1)
     df.drop([f"utilization_m{i}" for i in range(1, 7)], axis=1, inplace=True)
 
-    # pay-bill ratios
+    # Pay–bill ratios
     for i in range(1, 6):
         df[f"paybill_ratio_{i}"] = df[f"pay_amt{i+1}"] / (df[f"Bill_amt{i}"] + 1e-3)
 
@@ -56,13 +56,16 @@ def preprocess(df):
         - df["AVG_Bill_amt"]
     )
 
-    # drop raw bill amounts
+    # Drop raw bill amounts
     df.drop([f"Bill_amt{i}" for i in range(1,7)], axis=1, inplace=True)
 
     return df
 
 # ---------------- UI ----------------
-st.subheader("Enter Customer Features")
+st.title("💳 Credit Risk Prediction")
+
+# -------- SINGLE CUSTOMER PREDICTION --------
+st.subheader("🔹 Single Customer Prediction")
 
 Customer_ID = st.number_input("Customer ID", value=0)
 
@@ -96,7 +99,6 @@ pay_amt6 = st.number_input("Pay Amount 6", value=0.0)
 AVG_Bill_amt = st.number_input("Average Bill Amount", value=0.0)
 PAY_TO_BILL_ratio = st.number_input("PAY TO BILL ratio", value=0.0)
 
-# ---------------- PREDICTION ----------------
 if st.button("Predict"):
     raw_df = pd.DataFrame([{
         "Customer_ID": Customer_ID,
@@ -124,12 +126,10 @@ if st.button("Predict"):
         "pay_amt5": pay_amt5,
         "pay_amt6": pay_amt6,
         "AVG_Bill_amt": AVG_Bill_amt,
-        "PAY_TO_BILL_ratio":PAY_TO_BILL_ratio
+        "PAY_TO_BILL_ratio": PAY_TO_BILL_ratio
     }])
 
     processed_df = preprocess(raw_df)
-
-    # enforce training feature order
     processed_df = processed_df[model.feature_names_in_]
 
     pred = model.predict(processed_df)[0]
@@ -139,3 +139,42 @@ if st.button("Predict"):
     else:
         st.success(f"✅ Customer {Customer_ID}: Not Likely to Default")
 
+# -------- BATCH CSV PREDICTION --------
+st.markdown("---")
+st.subheader("📂 Batch Prediction (Upload CSV)")
+
+uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+
+if uploaded_file is not None:
+    try:
+        batch_df = pd.read_csv(uploaded_file)
+
+        st.write("Preview of uploaded data:")
+        st.dataframe(batch_df.head())
+
+        customer_ids = batch_df["Customer_ID"]
+
+        processed_batch = preprocess(batch_df)
+        processed_batch = processed_batch[model.feature_names_in_]
+
+        batch_preds = model.predict(processed_batch)
+
+        output_df = pd.DataFrame({
+            "Customer_ID": customer_ids,
+            "next_month_default": batch_preds
+        })
+
+        st.subheader("✅ Batch Prediction Results")
+        st.dataframe(output_df.head())
+
+        csv = output_df.to_csv(index=False).encode("utf-8")
+
+        st.download_button(
+            "⬇️ Download Predictions as CSV",
+            csv,
+            "credit_risk_predictions.csv",
+            "text/csv"
+        )
+
+    except Exception as e:
+        st.error(f"❌ Error processing file: {e}")
