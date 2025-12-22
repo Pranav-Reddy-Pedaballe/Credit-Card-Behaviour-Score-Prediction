@@ -4,8 +4,14 @@ import joblib
 import os
 from google.cloud import storage
 
+# Gemini / Vertex AI
+import vertexai
+from vertexai.preview.generative_models import GenerativeModel
+
+# ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Credit Risk Prediction", layout="centered")
 
+# ---------------- CONSTANTS ----------------
 MODEL_PATH = "model.joblib"
 BUCKET_NAME = "credit-risk-pred-pranav"
 BLOB_NAME = "model.joblib"
@@ -22,11 +28,20 @@ def load_model():
 
 model = load_model()
 
+# ---------------- LOAD GEMINI ----------------
+@st.cache_resource
+def load_gemini():
+    vertexai.init(
+        project=os.environ.get("GOOGLE_CLOUD_PROJECT"),
+        location="us-central1"
+    )
+    return GenerativeModel("gemini-1.5-flash")
+
 # ---------------- PREPROCESS FUNCTION ----------------
 def preprocess(df):
     df = df.copy()
 
-    # Drop Customer_ID (used only for reference)
+    # Drop Customer_ID (not used by model)
     df.drop("Customer_ID", axis=1, inplace=True)
 
     # Payment delay features
@@ -61,10 +76,20 @@ def preprocess(df):
 
     return df
 
+# ---------------- SIDEBAR OPTIONS ----------------
+st.sidebar.title("⚙️ Options")
+use_gemini = st.sidebar.toggle(
+    "🧠 Explain prediction using Gemini",
+    value=False,
+    help="Uses Gemini to explain results in simple language (free-tier friendly)"
+)
+
 # ---------------- UI ----------------
 st.title("💳 Credit Risk Prediction")
 
-# -------- SINGLE CUSTOMER PREDICTION --------
+# =================================================
+# 🔹 SINGLE CUSTOMER PREDICTION
+# =================================================
 st.subheader("🔹 Single Customer Prediction")
 
 Customer_ID = st.number_input("Customer ID", value=0)
@@ -133,13 +158,34 @@ if st.button("Predict"):
     processed_df = processed_df[model.feature_names_in_]
 
     pred = model.predict(processed_df)[0]
+    result_text = "Likely to Default" if pred == 1 else "Not Likely to Default"
 
     if pred == 1:
-        st.error(f"⚠️ Customer {Customer_ID}: Likely to Default")
+        st.error(f"⚠️ Customer {Customer_ID}: {result_text}")
     else:
-        st.success(f"✅ Customer {Customer_ID}: Not Likely to Default")
+        st.success(f"✅ Customer {Customer_ID}: {result_text}")
 
-# -------- BATCH CSV PREDICTION --------
+    # ---------- GEMINI EXPLANATION ----------
+    if use_gemini:
+        with st.spinner("🧠 Generating explanation with Gemini..."):
+            gemini = load_gemini()
+            prompt = f"""
+            A credit risk model predicted that a customer is '{result_text}'.
+
+            Key details:
+            - Credit limit: {LIMIT_BAL}
+            - Age: {age}
+            - Payment delays: {pay_0}, {pay_2}, {pay_3}, {pay_4}, {pay_5}, {pay_6}
+            - Average bill amount: {AVG_Bill_amt}
+
+            Explain this decision in simple, non-technical language.
+            """
+            response = gemini.generate_content(prompt)
+            st.info(response.text)
+
+# =================================================
+# 📂 BATCH CSV PREDICTION
+# =================================================
 st.markdown("---")
 st.subheader("📂 Batch Prediction (Upload CSV)")
 
@@ -148,7 +194,6 @@ uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
 if uploaded_file is not None:
     try:
         batch_df = pd.read_csv(uploaded_file)
-
         st.write("Preview of uploaded data:")
         st.dataframe(batch_df.head())
 
@@ -168,13 +213,24 @@ if uploaded_file is not None:
         st.dataframe(output_df.head())
 
         csv = output_df.to_csv(index=False).encode("utf-8")
-
         st.download_button(
             "⬇️ Download Predictions as CSV",
             csv,
             "credit_risk_predictions.csv",
             "text/csv"
         )
+
+        if use_gemini:
+            with st.spinner("🧠 Summarizing batch results with Gemini..."):
+                gemini = load_gemini()
+                prompt = f"""
+                A credit risk model evaluated {len(output_df)} customers.
+                {output_df['next_month_default'].sum()} are predicted to default.
+
+                Provide a short executive summary (3–4 lines).
+                """
+                response = gemini.generate_content(prompt)
+                st.info(response.text)
 
     except Exception as e:
         st.error(f"❌ Error processing file: {e}")
