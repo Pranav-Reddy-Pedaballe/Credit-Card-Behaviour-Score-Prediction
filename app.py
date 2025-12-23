@@ -49,7 +49,8 @@ model = load_model()
 # ======================================================
 @st.cache_resource
 def load_gemini():
-    return GenerativeModel("gemini-1.5-flash")
+    return GenerativeModel("gemini-1.0-pro")
+
 
 # ======================================================
 # ---------------- PREPROCESS FUNCTION ------------------
@@ -251,3 +252,4 @@ if uploaded_file is not None:
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
+
